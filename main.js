@@ -76,9 +76,11 @@ async function saveGameState() {
         const saveData = gbaSavesInstance.exportSave();
         const saveType = gbaSavesInstance.exportSaveType();
 
-        if (!saveData || saveData.length === 0) {
+        // Check if saveData is valid (e.g., not null or empty array if expected)
+        // IodineGBA's exportSave returns an array, so checking for length is good.
+        if (!saveData || !Array.isArray(saveData) || saveData.length === 0) {
             showUserMessage('No valid save data exported by emulator. Is game running?', 'error');
-            console.warn("[Save] Exported save data is empty or null:", saveData);
+            console.warn("[Save] Exported save data is empty or not an array:", saveData);
             return;
         }
 
@@ -154,29 +156,24 @@ async function loadGameState() {
 function findGbaSavesInstance() {
     console.log("[Init] Attempting to find gbaSavesInstance...");
 
-    // Common places IodineGBA might expose its main emulator object or saves instance
-    // Try window.gbaEmulator.saves (most likely for your setup based on previous interactions)
-    if (typeof window.gbaEmulator !== 'undefined' && window.gbaEmulator && window.gbaEmulator.saves) {
+    // Try window.Iodine.IOCore.saves - This is the most likely path based on your console output
+    if (typeof window.Iodine !== 'undefined' && window.Iodine.IOCore && window.Iodine.IOCore.saves) {
+        console.log("[Init] Found gbaSavesInstance at window.Iodine.IOCore.saves");
+        return window.Iodine.IOCore.saves;
+    }
+    // Fallback checks (less likely, but good to keep for robustness)
+    if (typeof window.gbaEmulator !== 'undefined' && window.gbaEmulator.saves) {
         console.log("[Init] Found gbaSavesInstance at window.gbaEmulator.saves");
         return window.gbaEmulator.saves;
     }
-    // Try window.IodineGBA.emulator.saves (another common pattern)
     if (typeof window.IodineGBA !== 'undefined' && window.IodineGBA.emulator && window.IodineGBA.emulator.saves) {
         console.log("[Init] Found gbaSavesInstance at window.IodineGBA.emulator.saves");
         return window.IodineGBA.emulator.saves;
     }
-    // Try window.IodineGBA.saves (less common for the instance, more for the constructor)
     if (typeof window.IodineGBA !== 'undefined' && window.IodineGBA.saves) {
         console.log("[Init] Found gbaSavesInstance at window.IodineGBA.saves (might be constructor or instance)");
-        // If it's the constructor, you'd need to instantiate it.
-        // For now, we assume it's the already-instantiated object.
         return window.IodineGBA.saves;
     }
-    // If your emulator assigns it to a different global variable, add it here:
-    // if (typeof window.YOUR_EMULATOR_GLOBAL_VAR !== 'undefined' && window.YOUR_EMULATOR_GLOBAL_VAR.saves) {
-    //     console.log("[Init] Found gbaSavesInstance at window.YOUR_EMULATOR_GLOBAL_VAR.saves");
-    //     return window.YOUR_EMULATOR_GLOBAL_VAR.saves;
-    // }
 
     console.warn("[Init] gbaSavesInstance not found in common global locations. This is the most likely cause of save/load failure.");
     return null;
@@ -186,7 +183,7 @@ function findGbaSavesInstance() {
 window.addEventListener('load', async () => {
     console.log("[Init] Window loaded. Initializing save system...");
 
-    // Extract ROM ID from URL hash (e.g., #advancewars -> "advancewars")
+    // Extract ROM ID from URL hash (e.g., #pokemonemerald -> "pokemonemerald")
     if (window.location.hash) {
         CURRENT_ROM_ID = window.location.hash.substring(1);
         console.log("[Init] Current ROM ID from URL hash:", CURRENT_ROM_ID);
@@ -198,11 +195,10 @@ window.addEventListener('load', async () => {
     gbaSavesInstance = findGbaSavesInstance();
 
     // If not found immediately, wait a bit and try again, as IodineGBA might initialize asynchronously.
-    // We'll try a few times.
     let retryCount = 0;
-    while (!gbaSavesInstance && retryCount < 5) { // Try up to 5 times
-        console.log(`[Init] gbaSavesInstance not found immediately. Retrying in ${500 * (retryCount + 1)}ms... (Attempt ${retryCount + 1}/5)`);
-        await new Promise(resolve => setTimeout(resolve, 500 * (retryCount + 1))); // Exponential backoff
+    while (!gbaSavesInstance && retryCount < 10) { // Increased retries
+        console.log(`[Init] gbaSavesInstance not found immediately. Retrying in ${200 * (retryCount + 1)}ms... (Attempt ${retryCount + 1}/10)`); // Faster retries
+        await new Promise(resolve => setTimeout(resolve, 200 * (retryCount + 1)));
         gbaSavesInstance = findGbaSavesInstance();
         retryCount++;
     }
@@ -250,3 +246,4 @@ window.addEventListener('load', async () => {
 
     showUserMessage('Save system loaded. Press Ctrl + Q to quick save or Ctrl + L to quick load!', 'info');
 });
+
