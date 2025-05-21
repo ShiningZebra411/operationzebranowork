@@ -1,256 +1,258 @@
 // main.js
 
-// IndexedDB Constants
+// Constants
 const DB_NAME = 'GBAEmulatorSavesDB';
 const STORE_NAME = 'gameStates';
 const DB_VERSION = 1;
+let CURRENT_ROM_ID = window.location.hash.substring(1) || 'default-rom';
+let gbaSavesInstance = null;
+let db = null;
+let messageTimeoutId;
 
-// Unique ID for the current game/ROM. This will be extracted from the URL hash.
-let CURRENT_ROM_ID = 'default-rom'; // Default in case hash is empty
-
-// Global variables to hold instances
-let gbaSavesInstance = null; // Initialize as null
-let db = null; // Initialize as null
-let messageTimeoutId; // To manage the message display timeout
-
-// Get DOM elements
+// DOM Elements
 const saveButton = document.getElementById('saveGameButton');
 const loadButton = document.getElementById('loadGameButton');
 const messageBox = document.getElementById('messageBox');
+const importSaveInput = document.getElementById('importSaveInput');
+const importSaveButton = document.getElementById('importSaveButton');
+const saveSlotSelector = document.getElementById('saveSlotSelector');
+const exportStateBtn = document.getElementById('exportStateBtn');
+const importStateBtn = document.getElementById('importStateBtn');
+const importStateFile = document.getElementById('importStateFile');
+const gdriveUploadBtn = document.getElementById('gdriveUploadBtn');
+const gdriveDownloadBtn = document.getElementById('gdriveDownloadBtn');
 
-// Function to display messages to the user
+// Google Drive API Constants
+const CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
+const API_KEY = 'YOUR_GOOGLE_API_KEY';
+const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+// Utility Functions
 function showUserMessage(msg, type = 'info') {
-    clearTimeout(messageTimeoutId); // Clear any existing timeout
+    clearTimeout(messageTimeoutId);
     messageBox.textContent = msg;
-    messageBox.className = `message-box ${type}`; // Set class for styling
-    messageBox.classList.remove('hidden'); // Make it visible
-
-    // Hide message after 3 seconds
+    messageBox.className = `message-box ${type}`;
+    messageBox.classList.remove('hidden');
     messageTimeoutId = setTimeout(() => {
         messageBox.classList.add('hidden');
     }, 3000);
 }
 
-// Function to open and initialize IndexedDB
+function getFullSaveKey() {
+    const slot = saveSlotSelector ? saveSlotSelector.value : 'slot1';
+    return `${CURRENT_ROM_ID}_${slot}`;
+}
+
+// IndexedDB Functions
 function openIndexedDB() {
-    console.log("[IndexedDB] Attempting to open IndexedDB...");
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
-
         request.onupgradeneeded = (event) => {
             db = event.target.result;
-            // Create an object store to hold game states, using romId as the key
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: 'romId' });
-                showUserMessage('IndexedDB upgrade needed, creating object store.', 'info');
-                console.log("[IndexedDB] Object store created.");
-            } else {
-                console.log("[IndexedDB] Object store already exists.");
             }
         };
-
         request.onsuccess = (event) => {
             db = event.target.result;
-            console.log("[IndexedDB] Opened successfully.");
             resolve(db);
         };
-
         request.onerror = (event) => {
-            showUserMessage(`IndexedDB error: ${event.target.errorCode}`, 'error');
-            console.error('[IndexedDB] Error:', event.target.error);
             reject(event.target.error);
         };
     });
 }
 
-// Function to save the game state to IndexedDB
 async function saveGameState() {
-    console.log("[Save] Attempting to save game state...");
     if (!gbaSavesInstance || !db) {
         showUserMessage('Emulator or database not ready. Cannot save.', 'error');
-        console.error("[Save] Failed: gbaSavesInstance or db not ready.", { gbaSavesInstance, db });
         return;
     }
-
     try {
         const saveData = gbaSavesInstance.exportSave();
         const saveType = gbaSavesInstance.exportSaveType();
-
-        // --- NEW LOGGING HERE ---
-        console.log("[Save] Data returned by exportSave():", saveData);
-        console.log("[Save] Type of saveData:", typeof saveData, "Is Array:", Array.isArray(saveData), "Is Uint8Array:", saveData instanceof Uint8Array);
-        console.log("[Save] Length of saveData:", saveData ? saveData.length : 'N/A');
-        // --- END NEW LOGGING ---
-
-        // The condition below should correctly handle Uint8Array and regular Arrays
         if (!saveData || saveData.length === 0) {
-            showUserMessage('No valid save data exported by emulator. Is game running?', 'error');
-            console.warn("[Save] Exported save data is empty or invalid:", saveData);
+            showUserMessage('No valid save data exported by emulator.', 'error');
             return;
         }
-
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
-
         const saveObject = {
-            romId: CURRENT_ROM_ID,
-            data: saveData, // This should be a serializable array (e.g., Uint8Array, regular Array)
+            romId: getFullSaveKey(),
+            data: saveData,
             type: saveType,
             timestamp: new Date().toISOString()
         };
-
-        console.log("[Save] Putting saveObject into IndexedDB:", saveObject);
         const request = store.put(saveObject);
-
         request.onsuccess = () => {
             showUserMessage('Game saved successfully!', 'success');
-            console.log('[Save] Game state saved:', saveObject);
         };
-
         request.onerror = (event) => {
             showUserMessage(`Failed to save game: ${event.target.error.message}`, 'error');
-            console.error('[Save] Error:', event.target.error);
         };
-
     } catch (e) {
         showUserMessage(`Error exporting save data: ${e.message}`, 'error');
-        console.error('[Save] Export error:', e);
     }
 }
 
-// Function to load the game state from IndexedDB
 async function loadGameState() {
-    console.log("[Load] Attempting to load game state...");
     if (!gbaSavesInstance || !db) {
         showUserMessage('Emulator or database not ready. Cannot load.', 'error');
-        console.error("[Load] Failed: gbaSavesInstance or db not ready.", { gbaSavesInstance, db });
         return;
     }
-
     try {
         const transaction = db.transaction([STORE_NAME], 'readonly');
         const store = transaction.objectStore(STORE_NAME);
-        const request = store.get(CURRENT_ROM_ID);
-
+        const request = store.get(getFullSaveKey());
         request.onsuccess = (event) => {
             const saveObject = event.target.result;
             if (saveObject) {
-                console.log("[Load] Found saved game data:", saveObject);
-                // Ensure data format is compatible with importSave (e.g., Array from IndexedDB)
                 gbaSavesInstance.importSave(saveObject.data, saveObject.type);
                 showUserMessage('Game loaded successfully!', 'success');
-                console.log('[Load] Game state loaded:', saveObject);
             } else {
-                showUserMessage('No saved game found for this ROM.', 'info');
-                console.log('[Load] No saved game found for ROM ID:', CURRENT_ROM_ID);
+                showUserMessage('No saved game found for this ROM and slot.', 'info');
             }
         };
-
         request.onerror = (event) => {
-            showUserMessage(`Failed to load game from IndexedDB: ${event.target.error.message}`, 'error');
-            console.error('[Load] Error:', event.target.error);
+            showUserMessage(`Failed to load game: ${event.target.error.message}`, 'error');
         };
-
     } catch (e) {
         showUserMessage(`Error importing save data: ${e.message}`, 'error');
-        console.error('[Load] Import error:', e);
     }
 }
 
-// Function to find the IodineGBA Saves instance
-function findGbaSavesInstance() {
-    console.log("[Init] Attempting to find gbaSavesInstance...");
+// Import .sav File
+importSaveButton?.addEventListener('click', () => importSaveInput?.click());
+importSaveInput?.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const arrayBuffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    try {
+        gbaSavesInstance.importSave(uint8Array);
+        showUserMessage('Save file imported successfully!', 'success');
+    } catch (e) {
+        showUserMessage(`Import failed: ${e.message}`, 'error');
+    }
+});
 
-    // Try window.Iodine.IOCore.saves - This is the most likely path based on your console output
-    if (typeof window.Iodine !== 'undefined' && window.Iodine.IOCore && window.Iodine.IOCore.saves) {
-        console.log("[Init] Found gbaSavesInstance at window.Iodine.IOCore.saves");
-        return window.Iodine.IOCore.saves;
+// Export/Import Emulator State
+exportStateBtn?.addEventListener('click', () => {
+    if (!window.Iodine || !window.Iodine.IOCore) {
+        showUserMessage('Emulator not ready.', 'error');
+        return;
     }
-    // Fallback checks (less likely, but good to keep for robustness)
-    if (typeof window.gbaEmulator !== 'undefined' && window.gbaEmulator.saves) {
-        console.log("[Init] Found gbaSavesInstance at window.gbaEmulator.saves");
-        return window.gbaEmulator.saves;
-    }
-    if (typeof window.IodineGBA !== 'undefined' && window.IodineGBA.emulator && window.IodineGBA.emulator.saves) {
-        console.log("[Init] Found gbaSavesInstance at window.IodineGBA.emulator.saves");
-        return window.IodineGBA.emulator.saves;
-    }
-    if (typeof window.IodineGBA !== 'undefined' && window.IodineGBA.saves) {
-        console.log("[Init] Found gbaSavesInstance at window.IodineGBA.saves (might be constructor or instance)");
-        return window.IodineGBA.saves;
-    }
+    const stateData = window.Iodine.IOCore.saveState();
+    const blob = new Blob([stateData], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${CURRENT_ROM_ID}_state.bin`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showUserMessage('State exported!', 'success');
+});
 
-    console.warn("[Init] gbaSavesInstance not found in common global locations.");
-    return null;
+importStateBtn?.addEventListener('click', () => importStateFile?.click());
+importStateFile?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    const buf = await file.arrayBuffer();
+    try {
+        window.Iodine.IOCore.loadState(buf);
+        showUserMessage('State loaded!', 'success');
+    } catch (err) {
+        showUserMessage(`Failed to load state: ${err.message}`, 'error');
+    }
+});
+
+// Google Drive Integration
+function initGoogleDriveAPI() {
+    gapi.load('client:auth2', () => {
+        gapi.client.init({
+            apiKey: API_KEY,
+            clientId: CLIENT_ID,
+            discoveryDocs: DISCOVERY_DOCS,
+            scope: SCOPES
+        }).then(() => {
+            // Sign in the user if not already signed in
+            if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                gapi.auth2.getAuthInstance().signIn();
+            }
+        });
+    });
 }
 
-// Initialize the application when the window loads
+gdriveUploadBtn?.addEventListener('click', async () => {
+    if (!gbaSavesInstance) {
+        showUserMessage('Emulator not ready.', 'error');
+        return;
+    }
+    const saveData = gbaSavesInstance.exportSave();
+    const blob = new Blob([saveData], { type: 'application/octet-stream' });
+    const fileMetadata = {
+        name: `${getFullSaveKey()}.sav`
+    };
+    const accessToken = gapi.auth.getToken().access_token;
+    fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }),
+        body: new FormData().append('file', blob, fileMetadata.name)
+    }).then(response => response.json())
+      .then(data => {
+          showUserMessage('Save uploaded to Google Drive!', 'success');
+      }).catch(error => {
+          showUserMessage(`Upload failed: ${error.message}`, 'error');
+      });
+});
+
+gdriveDownloadBtn?.addEventListener('click', async () => {
+    const fileName = `${getFullSaveKey()}.sav`;
+    const accessToken = gapi.auth.getToken().access_token;
+    fetch(`https://www.googleapis.com/drive/v3/files?q=name='${fileName}'&spaces=drive`, {
+        headers: new Headers({ 'Authorization': 'Bearer ' + accessToken })
+    }).then(response => response.json())
+      .then(data => {
+          if (data.files.length > 0) {
+              const fileId = data.files[0].id;
+              fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+                  headers: new Headers({ 'Authorization': 'Bearer ' + accessToken })
+              }).then(res => res.arrayBuffer())
+                .then(buffer => {
+                    const uint8Array = new Uint8Array(buffer);
+                    gbaSavesInstance.importSave(uint8Array);
+                    showUserMessage('Save downloaded from Google Drive!', 'success');
+                });
+          } else {
+              showUserMessage('No matching save file found on Google Drive.', 'info');
+          }
+      }).catch(error => {
+          showUserMessage(`Download failed: ${error.message}`, 'error');
+      });
+});
+
+// Initialize
 window.addEventListener('load', async () => {
-    console.log("[Init] Window loaded. Initializing save system...");
-
-    // Extract ROM ID from URL hash (e.g., #pokemonemerald -> "pokemonemerald")
     if (window.location.hash) {
         CURRENT_ROM_ID = window.location.hash.substring(1);
-        console.log("[Init] Current ROM ID from URL hash:", CURRENT_ROM_ID);
-    } else {
-        console.warn("[Init] No ROM ID found in URL hash. Using default 'default-rom'. This might lead to saves overwriting each other if multiple games are played.");
     }
-
-    // Try to find the gbaSavesInstance
     gbaSavesInstance = findGbaSavesInstance();
-
-    // If not found immediately, wait a bit and try again, as IodineGBA might initialize asynchronously.
     let retryCount = 0;
-    while (!gbaSavesInstance && retryCount < 10) { // Increased retries
-        console.log(`[Init] gbaSavesInstance not found immediately. Retrying in ${200 * (retryCount + 1)}ms... (Attempt ${retryCount + 1}/10)`); // Faster retries
+    while (!gbaSavesInstance && retryCount < 10) {
         await new Promise(resolve => setTimeout(resolve, 200 * (retryCount + 1)));
         gbaSavesInstance = findGbaSavesInstance();
         retryCount++;
     }
-
     if (!gbaSavesInstance) {
-        console.error("[Init] Failed to find IodineGBA Saves instance after multiple retries. Save/Load functionality will not work.");
         showUserMessage('Emulator save system not found. Save/Load disabled.', 'error');
-        if (saveButton) saveButton.disabled = true;
-        if (loadButton) loadButton.disabled = true;
-        return; // Stop further initialization if core component is missing
-    } else {
-        console.log("[Init] gbaSavesInstance successfully acquired after retries.");
+        saveButton.disabled = true;
+        loadButton.disabled = true;
+        return;
     }
-
-
-    // Open IndexedDB and then try to load game state
     try {
         await openIndexedDB();
-        // Only attempt to load if gbaSavesInstance is actually available
-        if (gbaSavesInstance) {
-            console.log("[Init] IndexedDB ready and gbaSavesInstance available. Attempting initial load...");
-            await loadGameState(); // Attempt to load game state on startup
-        } else {
-            showUserMessage('Emulator not fully initialized. Manual load might be needed after ROM loads.', 'info');
-        }
+        await loadGameState();
     } catch (e) {
-        console.error("[Init] Error during IndexedDB or initial load:", e);
-        showUserMessage(`Failed to initialize save system: ${e.message}`, 'error');
-    }
-
-    // Add event listeners for buttons
-    if (saveButton) saveButton.addEventListener('click', saveGameState);
-    if (loadButton) loadButton.addEventListener('click', loadGameState);
-
-    // Add keyboard shortcut listener
-    document.addEventListener('keydown', (event) => {
-        // Check for Ctrl (or Cmd on Mac) + Q for quick save
-        if ((event.ctrlKey || event.metaKey) && event.key === 'q') {
-            event.preventDefault(); // Prevent browser's default action (e.g., closing tab)
-            saveGameState(); // Trigger the save function
-        }
-        // Check for Ctrl (or Cmd on Mac) + L for quick load
-        else if ((event.ctrlKey || event.metaKey) && event.key === 'l') {
-            event.preventDefault(); // Prevent browser's default action (e.g., opening downloads)
-            loadGameState(); // Trigger the load function
-        }
-    });
-
-    showUserMessage('Save system loaded. Press Ctrl + Q to quick save or Ctrl + L to quick load!', 'info');
-});
+        showUserMessage
+::contentReference[oaicite:0]{index=0}
+ 
