@@ -76,10 +76,13 @@ async function saveGameState() {
         const saveData = gbaSavesInstance.exportSave();
         const saveType = gbaSavesInstance.exportSaveType();
 
-        // --- FIX APPLIED HERE ---
-        // Changed condition to allow Uint8Array (TypedArray) as valid data.
-        // It checks if saveData is null/undefined OR if it has a length of 0.
-        // This correctly handles both regular Arrays and TypedArrays.
+        // --- NEW LOGGING HERE ---
+        console.log("[Save] Data returned by exportSave():", saveData);
+        console.log("[Save] Type of saveData:", typeof saveData, "Is Array:", Array.isArray(saveData), "Is Uint8Array:", saveData instanceof Uint8Array);
+        console.log("[Save] Length of saveData:", saveData ? saveData.length : 'N/A');
+        // --- END NEW LOGGING ---
+
+        // The condition below should correctly handle Uint8Array and regular Arrays
         if (!saveData || saveData.length === 0) {
             showUserMessage('No valid save data exported by emulator. Is game running?', 'error');
             console.warn("[Save] Exported save data is empty or invalid:", saveData);
@@ -177,7 +180,7 @@ function findGbaSavesInstance() {
         return window.IodineGBA.saves;
     }
 
-    console.warn("[Init] gbaSavesInstance not found in common global locations. This is the most likely cause of save/load failure.");
+    console.warn("[Init] gbaSavesInstance not found in common global locations.");
     return null;
 }
 
@@ -211,6 +214,8 @@ window.addEventListener('load', async () => {
         if (saveButton) saveButton.disabled = true;
         if (loadButton) loadButton.disabled = true;
         return; // Stop further initialization if core component is missing
+    } else {
+        console.log("[Init] gbaSavesInstance successfully acquired after retries.");
     }
 
 
@@ -219,12 +224,13 @@ window.addEventListener('load', async () => {
         await openIndexedDB();
         // Only attempt to load if gbaSavesInstance is actually available
         if (gbaSavesInstance) {
-            // Load game state after IndexedDB is ready AND emulator saves instance is found
-            await loadGameState();
+            console.log("[Init] IndexedDB ready and gbaSavesInstance available. Attempting initial load...");
+            await loadGameState(); // Attempt to load game state on startup
         } else {
             showUserMessage('Emulator not fully initialized. Manual load might be needed after ROM loads.', 'info');
         }
     } catch (e) {
+        console.error("[Init] Error during IndexedDB or initial load:", e);
         showUserMessage(`Failed to initialize save system: ${e.message}`, 'error');
     }
 
