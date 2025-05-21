@@ -76,11 +76,13 @@ async function saveGameState() {
         const saveData = gbaSavesInstance.exportSave();
         const saveType = gbaSavesInstance.exportSaveType();
 
-        // Check if saveData is valid (e.g., not null or empty array if expected)
-        // IodineGBA's exportSave returns an array, so checking for length is good.
-        if (!saveData || !Array.isArray(saveData) || saveData.length === 0) {
+        // --- FIX APPLIED HERE ---
+        // Changed condition to allow Uint8Array (TypedArray) as valid data.
+        // It checks if saveData is null/undefined OR if it has a length of 0.
+        // This correctly handles both regular Arrays and TypedArrays.
+        if (!saveData || saveData.length === 0) {
             showUserMessage('No valid save data exported by emulator. Is game running?', 'error');
-            console.warn("[Save] Exported save data is empty or not an array:", saveData);
+            console.warn("[Save] Exported save data is empty or invalid:", saveData);
             return;
         }
 
@@ -246,4 +248,3 @@ window.addEventListener('load', async () => {
 
     showUserMessage('Save system loaded. Press Ctrl + Q to quick save or Ctrl + L to quick load!', 'info');
 });
-
