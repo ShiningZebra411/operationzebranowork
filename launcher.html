@@ -3,8 +3,7 @@
     <head>
         <title>GBA Emulator</title>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script src="https://cdn.tailwindcss.com"></script>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"> <script src="https://cdn.tailwindcss.com"></script>
         <style>
             /* Custom styles for the message box */
             .message-box {
@@ -49,13 +48,13 @@
                 border: 4px solid #333;
                 border-radius: 8px;
                 margin-bottom: 20px;
-                /* Updated CSS for larger screen */
-                width: 720px; /* 3x scale from 240px */
-                height: 480px; /* 3x scale from 160px */
+                /* Make canvas responsive */
+                width: 720px; /* Set a larger default width (3x original GBA width) */
+                height: 480px; /* Set a larger default height (3x original GBA height) */
                 max-width: 100%; /* Ensure it scales down on smaller screens */
                 height: auto; /* Maintain aspect ratio when scaling down */
                 image-rendering: crisp-edges; /* Tries to keep pixels sharp when scaled */
-                image-rendering: pixelated; /* Alternative for pixel art scaling */
+                image-rendering: pixelated;   /* Alternative for pixel art scaling */
             }
         </style>
         <script src="IodineGBA/includes/TypedArrayShim.js"></script>
@@ -85,7 +84,7 @@
         <script src="IodineGBA/core/graphics/RendererProxy.js"></script>
         <script src="IodineGBA/core/graphics/BGTEXT.js"></script>
         <script src="IodineGBA/core/graphics/BG2FrameBuffer.js"></script>
-        <script src="IodineGBA/core/graphics/BGMatrix.js"></ đeo
+        <script src="IodineGBA/core/graphics/BGMatrix.js"></script>
         <script src="IodineGBA/core/graphics/AffineBG.js"></script>
         <script src="IodineGBA/core/graphics/ColorEffects.js"></script>
         <script src="IodineGBA/core/graphics/Mosaic.js"></script>
