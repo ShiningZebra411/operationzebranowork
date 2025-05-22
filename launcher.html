@@ -44,17 +44,18 @@
                 padding: 20px; /* Add some padding around the content */
                 box-sizing: border-box; /* Include padding in element's total width and height */
             }
-            #emulator_target {
-                border: 4px solid #333;
-                border-radius: 8px;
-                margin-bottom: 20px;
-                /* Make canvas responsive */
-                width: 720px; /* Set a larger default width (3x original GBA width) */
-                height: 480px; /* Set a larger default height (3x original GBA height) */
-                max-width: 100%; /* Ensure it scales down on smaller screens */
-                height: auto; /* Maintain aspect ratio when scaling down */
-                image-rendering: crisp-edges; /* Tries to keep pixels sharp when scaled */
-                image-rendering: pixelated;   /* Alternative for pixel art scaling */
+                 #emulator_target {
+            width: 720px;
+            height: 480px;
+            max-width: 100%;
+            height: auto;
+            image-rendering: pixelated;
+            border: 4px solid #333;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+           }
+
             }
         </style>
         <script src="IodineGBA/includes/TypedArrayShim.js"></script>
@@ -113,7 +114,8 @@
         <link rel="stylesheet" href="user_css/main.css">
     </head>
     <body>
-        <canvas id="emulator_target"></canvas> <span id="tempMessage"></span>
+        <canvas id="emulator_target" width="720" height="480"></canvas>
+
 
         <div class="flex justify-center space-x-4 mb-6">
             <button id="saveGameButton"
