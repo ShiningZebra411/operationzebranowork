@@ -301,16 +301,17 @@
         linkItem.style.display = linkText.includes(query) ? '' : 'none';
       });
     });
+<script>
+    const searchInput = document.getElementById('search');
+    const allLinks = document.querySelectorAll('ul li');
+
+    searchInput.addEventListener('input', function () {
+      const query = this.value.toLowerCase();
+      allLinks.forEach(linkItem => {
+        const linkText = linkItem.textContent.toLowerCase();
+        linkItem.style.display = linkText.includes(query) ? '' : 'none';
+      });
+    });
   </script>
-  <div class="button-container">
-  <button id="saveGameButton">Save Game</button>
-  <button id="loadGameButton">Load Game</button>
-<!-- Import .sav Button -->
-<button id="importSaveButton">Import .sav</button>
-<input type="file" id="importSaveInput" accept=".sav" style="display: none" />
-
-<!-- Message Box -->
-<div id="messageBox" class="message-box hidden"></div>
-
 </body>
 </html>
