@@ -1,41 +1,45 @@
 window.addEventListener('load', () => {
     const canvas = document.getElementById('emulator_target');
 
-    // Resize canvas to full screen
+    // Scale canvas to fit window while keeping 240x160 aspect ratio
     function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const scale = Math.min(window.innerWidth / 240, window.innerHeight / 160);
+        canvas.style.width = `${240 * scale}px`;
+        canvas.style.height = `${160 * scale}px`;
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Wait until IodineGBA is ready
+    // Wait until IodineGBA is loaded
     function startEmulator() {
         if (!window.Iodine) {
             console.error('Emulator not loaded yet.');
             return;
         }
 
-        // Create the emulator instance
+        // Create emulator instance
         const emulator = new Iodine({
             canvas: canvas
         });
 
-        // Get the ROM ID from URL hash or default
+        // Determine which ROM to load
         const romId = window.location.hash ? window.location.hash.substring(1) : 'default-rom';
-        const romPath = `roms/${romId}.gba`; // Make sure your GBA ROMs are in a folder called "roms"
+        const romPath = `roms/${romId}.gba`; // Place ROMs in "roms/" folder
 
-        // Load the ROM
+        // Load ROM
         fetch(romPath)
-            .then(res => res.arrayBuffer())
+            .then(response => {
+                if (!response.ok) throw new Error(`ROM not found: ${romPath}`);
+                return response.arrayBuffer();
+            })
             .then(buffer => {
                 emulator.loadROM(buffer);
-                emulator.run(); // start the emulator
+                emulator.run();
             })
-            .catch(err => console.error('Failed to load ROM:', err));
+            .catch(err => console.error(err));
     }
 
-    // Retry a few times if Iodine is not ready yet
+    // Retry until IodineGBA is ready
     let attempts = 0;
     const interval = setInterval(() => {
         if (window.Iodine) {
@@ -43,7 +47,7 @@ window.addEventListener('load', () => {
             startEmulator();
         } else if (attempts > 20) {
             clearInterval(interval);
-            console.error('Emulator not ready after multiple attempts.');
+            console.error('Emulator not ready.');
         }
         attempts++;
     }, 200);
