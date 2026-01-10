@@ -1,121 +1,96 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>GBA Emulator</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            /* Zebra stripes background */
-            background: repeating-linear-gradient(
-                45deg,
-                #000000,
-                #000000 20px,
-                #ffffff 20px,
-                #ffffff 40px
-            );
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GBA Emulator</title>
+<script src="https://cdn.tailwindcss.com"></script>
 
-        #emulator_target {
-            width: 100%;
-            height: 100%;
-            image-rendering: pixelated; /* Keep pixels sharp */
-        }
-    </style>
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        background: repeating-linear-gradient(
+            45deg,
+            #000,
+            #000 20px,
+            #fff 20px,
+            #fff 40px
+        );
+    }
 
-    <!-- IodineGBA Core Scripts -->
-    <script src="IodineGBA/includes/TypedArrayShim.js"></script>
-    <script src="IodineGBA/core/Cartridge.js"></script>
-    <script src="IodineGBA/core/DMA.js"></script>
-    <script src="IodineGBA/core/Emulator.js"></script>
-    <script src="IodineGBA/core/Graphics.js"></script>
-    <script src="IodineGBA/core/RunLoop.js"></script>
-    <script src="IodineGBA/core/Memory.js"></script>
-    <script src="IodineGBA/core/IRQ.js"></script>
-    <script src="IodineGBA/core/JoyPad.js"></script>
-    <script src="IodineGBA/core/Serial.js"></script>
-    <script src="IodineGBA/core/Sound.js"></script>
-    <script src="IodineGBA/core/Timer.js"></script>
-    <script src="IodineGBA/core/Wait.js"></script>
-    <script src="IodineGBA/core/CPU.js"></script>
-    <script src="IodineGBA/core/Saves.js"></script>
-    <script src="IodineGBA/core/sound/FIFO.js"></script>
-    <script src="IodineGBA/core/sound/Channel1.js"></script>
-    <script src="IodineGBA/core/sound/Channel2.js"></script>
-    <script src="IodineGBA/core/sound/Channel3.js"></script>
-    <script src="IodineGBA/core/sound/Channel4.js"></script>
-    <script src="IodineGBA/core/CPU/ARM.js"></script>
-    <script src="IodineGBA/core/CPU/THUMB.js"></script>
-    <script src="IodineGBA/core/CPU/CPSR.js"></script>
-    <script src="IodineGBA/core/graphics/Renderer.js"></script>
-    <script src="IodineGBA/core/graphics/RendererProxy.js"></script>
-    <script src="IodineGBA/core/graphics/BGTEXT.js"></script>
-    <script src="IodineGBA/core/graphics/BG2FrameBuffer.js"></script>
-    <script src="IodineGBA/core/graphics/BGMatrix.js"></script>
-    <script src="IodineGBA/core/graphics/AffineBG.js"></script>
-    <script src="IodineGBA/core/graphics/ColorEffects.js"></script>
-    <script src="IodineGBA/core/graphics/Mosaic.js"></script>
-    <script src="IodineGBA/core/graphics/OBJ.js"></script>
-    <script src="IodineGBA/core/graphics/OBJWindow.js"></script>
-    <script src="IodineGBA/core/graphics/Window.js"></script>
-    <script src="IodineGBA/core/graphics/Compositor.js"></script>
-    <script src="IodineGBA/core/memory/DMA0.js"></script>
-    <script src="IodineGBA/core/memory/DMA1.js"></script>
-    <script src="IodineGBA/core/memory/DMA2.js"></script>
-    <script src="IodineGBA/core/memory/DMA3.js"></script>
-    <script src="IodineGBA/core/cartridge/SaveDeterminer.js"></script>
-    <script src="IodineGBA/core/cartridge/SRAM.js"></script>
-    <script src="IodineGBA/core/cartridge/FLASH.js"></script>
-    <script src="IodineGBA/core/cartridge/EEPROM.js"></script>
+    #emulator_target {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100vw;
+        height: 100vh;
+        image-rendering: pixelated;
+    }
+</style>
 
-    <!-- User scripts -->
-    <script src="user_scripts/XAudioJS/swfobject.js"></script>
-    <script src="user_scripts/XAudioJS/resampler.js"></script>
-    <script src="user_scripts/XAudioJS/XAudioServer.js"></script>
-    <script src="user_scripts/IodineGBAROMLoadGlueCode.js"></script>
-    <script src="user_scripts/IodineGBAJoyPadGlueCode.js"></script>
-    <script src="user_scripts/IodineGBAGraphicsGlueCode.js"></script>
-    <script src="user_scripts/IodineGBAAudioGlueCode.js"></script>
-    <script src="user_scripts/IodineGBACoreGlueCode.js"></script>
-    <script src="user_scripts/base64.js"></script>
+<!-- IodineGBA Scripts -->
+<script src="IodineGBA/includes/TypedArrayShim.js"></script>
+<script src="IodineGBA/core/Cartridge.js"></script>
+<script src="IodineGBA/core/DMA.js"></script>
+<script src="IodineGBA/core/Emulator.js"></script>
+<script src="IodineGBA/core/Graphics.js"></script>
+<script src="IodineGBA/core/RunLoop.js"></script>
+<script src="IodineGBA/core/Memory.js"></script>
+<script src="IodineGBA/core/IRQ.js"></script>
+<script src="IodineGBA/core/JoyPad.js"></script>
+<script src="IodineGBA/core/Serial.js"></script>
+<script src="IodineGBA/core/Sound.js"></script>
+<script src="IodineGBA/core/Timer.js"></script>
+<script src="IodineGBA/core/Wait.js"></script>
+<script src="IodineGBA/core/CPU.js"></script>
+<script src="IodineGBA/core/Saves.js"></script>
+<script src="IodineGBA/core/sound/FIFO.js"></script>
+<script src="IodineGBA/core/sound/Channel1.js"></script>
+<script src="IodineGBA/core/sound/Channel2.js"></script>
+<script src="IodineGBA/core/sound/Channel3.js"></script>
+<script src="IodineGBA/core/sound/Channel4.js"></script>
+<script src="IodineGBA/core/CPU/ARM.js"></script>
+<script src="IodineGBA/core/CPU/THUMB.js"></script>
+<script src="IodineGBA/core/CPU/CPSR.js"></script>
+<script src="IodineGBA/core/graphics/Renderer.js"></script>
+<script src="IodineGBA/core/graphics/RendererProxy.js"></script>
+<script src="IodineGBA/core/graphics/BGTEXT.js"></script>
+<script src="IodineGBA/core/graphics/BG2FrameBuffer.js"></script>
+<script src="IodineGBA/core/graphics/BGMatrix.js"></script>
+<script src="IodineGBA/core/graphics/AffineBG.js"></script>
+<script src="IodineGBA/core/graphics/ColorEffects.js"></script>
+<script src="IodineGBA/core/graphics/Mosaic.js"></script>
+<script src="IodineGBA/core/graphics/OBJ.js"></script>
+<script src="IodineGBA/core/graphics/OBJWindow.js"></script>
+<script src="IodineGBA/core/graphics/Window.js"></script>
+<script src="IodineGBA/core/graphics/Compositor.js"></script>
+<script src="IodineGBA/core/memory/DMA0.js"></script>
+<script src="IodineGBA/core/memory/DMA1.js"></script>
+<script src="IodineGBA/core/memory/DMA2.js"></script>
+<script src="IodineGBA/core/memory/DMA3.js"></script>
+<script src="IodineGBA/core/cartridge/SaveDeterminer.js"></script>
+<script src="IodineGBA/core/cartridge/SRAM.js"></script>
+<script src="IodineGBA/core/cartridge/FLASH.js"></script>
+<script src="IodineGBA/core/cartridge/EEPROM.js"></script>
+
+<script src="user_scripts/XAudioJS/swfobject.js"></script>
+<script src="user_scripts/XAudioJS/resampler.js"></script>
+<script src="user_scripts/XAudioJS/XAudioServer.js"></script>
+<script src="user_scripts/IodineGBAROMLoadGlueCode.js"></script>
+<script src="user_scripts/IodineGBAJoyPadGlueCode.js"></script>
+<script src="user_scripts/IodineGBAGraphicsGlueCode.js"></script>
+<script src="user_scripts/IodineGBAAudioGlueCode.js"></script>
+<script src="user_scripts/IodineGBACoreGlueCode.js"></script>
+<script src="user_scripts/base64.js"></script>
+
 </head>
 <body>
-    <canvas id="emulator_target" width="240" height="160"></canvas>
-
-    <script src="main.js"></script>
-
-    <script>
-        const canvas = document.getElementById('emulator_target');
-        const ASPECT_RATIO = 240 / 160;
-
-        function resizeCanvas() {
-            let windowRatio = window.innerWidth / window.innerHeight;
-
-            let width, height;
-            if (windowRatio > ASPECT_RATIO) {
-                height = window.innerHeight;
-                width = height * ASPECT_RATIO;
-            } else {
-                width = window.innerWidth;
-                height = width / ASPECT_RATIO;
-            }
-
-            canvas.style.width = width + 'px';
-            canvas.style.height = height + 'px';
-        }
-
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas(); // initial resize
-    </script>
+<canvas id="emulator_target" width="240" height="160"></canvas>
+<script src="main.js"></script>
 </body>
 </html>
-
