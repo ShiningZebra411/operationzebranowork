@@ -1,7 +1,8 @@
 window.addEventListener('load', () => {
     const canvas = document.getElementById('emulator_target');
+    const gameList = document.getElementById('gameList');
 
-    // Scale canvas to fit window while keeping 240x160 aspect ratio
+    // Scale canvas
     function resizeCanvas() {
         const scale = Math.min(window.innerWidth / 240, window.innerHeight / 160);
         canvas.style.width = `${240 * scale}px`;
@@ -10,27 +11,33 @@ window.addEventListener('load', () => {
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Wait until IodineGBA is loaded
+    // List all ROMs in /roms/ folder
+    const roms = ['default-rom', 'pokemon', 'mario']; // Add all your ROM IDs here
+    roms.forEach(romId => {
+        const btn = document.createElement('a');
+        btn.href = `#${romId}`;
+        btn.textContent = romId.replace(/-/g, ' ').toUpperCase();
+        btn.className = 'game-button';
+        gameList.appendChild(btn);
+    });
+
+    // Start emulator
     function startEmulator() {
         if (!window.Iodine) {
             console.error('Emulator not loaded yet.');
             return;
         }
 
-        // Create emulator instance
-        const emulator = new Iodine({
-            canvas: canvas
-        });
+        const emulator = new Iodine({ canvas: canvas });
 
-        // Determine which ROM to load
+        // Get ROM from URL hash
         const romId = window.location.hash ? window.location.hash.substring(1) : 'default-rom';
-        const romPath = `roms/${romId}.gba`; // Place ROMs in "roms/" folder
+        const romPath = `roms/${romId}.gba`;
 
-        // Load ROM
         fetch(romPath)
-            .then(response => {
-                if (!response.ok) throw new Error(`ROM not found: ${romPath}`);
-                return response.arrayBuffer();
+            .then(res => {
+                if (!res.ok) throw new Error(`ROM not found: ${romPath}`);
+                return res.arrayBuffer();
             })
             .then(buffer => {
                 emulator.loadROM(buffer);
@@ -39,7 +46,7 @@ window.addEventListener('load', () => {
             .catch(err => console.error(err));
     }
 
-    // Retry until IodineGBA is ready
+    // Retry until Iodine is ready
     let attempts = 0;
     const interval = setInterval(() => {
         if (window.Iodine) {
@@ -51,4 +58,7 @@ window.addEventListener('load', () => {
         }
         attempts++;
     }, 200);
+
+    // Reload emulator if user clicks a different game
+    window.addEventListener('hashchange', startEmulator);
 });
