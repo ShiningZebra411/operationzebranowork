@@ -1,42 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>GBA Emulator</title>
     <meta charset="UTF-8">
+    <title>GBA Emulator Launcher</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Zebra stripe background */
         body {
             margin: 0;
-            padding: 0;
-            background: repeating-linear-gradient(
-                45deg,
-                #fff,
-                #fff 20px,
-                #000 20px,
-                #000 40px
-            );
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            background: repeating-linear-gradient(
+                45deg,
+                #fff 0 20px,
+                #000 20px 40px
+            ); /* zebra stripes background */
             overflow: hidden;
         }
-
-        canvas#emulator_target {
-            width: 100vw;
-            height: 100vh;
+        canvas {
             image-rendering: pixelated;
-            border: 0;
-        }
-
-        /* Remove old buttons completely */
-        .hidden {
-            display: none;
+            border: 4px solid #333;
+            border-radius: 8px;
         }
     </style>
-
     <!-- IodineGBA scripts -->
     <script src="IodineGBA/includes/TypedArrayShim.js"></script>
     <script src="IodineGBA/core/Cartridge.js"></script>
@@ -51,38 +39,11 @@
     <script src="IodineGBA/core/Timer.js"></script>
     <script src="IodineGBA/core/Wait.js"></script>
     <script src="IodineGBA/core/CPU.js"></script>
-    <script src="IodineGBA/core/Saves.js"></script>
-    <script src="IodineGBA/core/sound/FIFO.js"></script>
-    <script src="IodineGBA/core/sound/Channel1.js"></script>
-    <script src="IodineGBA/core/sound/Channel2.js"></script>
-    <script src="IodineGBA/core/sound/Channel3.js"></script>
-    <script src="IodineGBA/core/sound/Channel4.js"></script>
-    <script src="IodineGBA/core/CPU/ARM.js"></script>
-    <script src="IodineGBA/core/CPU/THUMB.js"></script>
-    <script src="IodineGBA/core/CPU/CPSR.js"></script>
-    <script src="IodineGBA/core/graphics/Renderer.js"></script>
-    <script src="IodineGBA/core/graphics/RendererProxy.js"></script>
-    <script src="IodineGBA/core/graphics/BGTEXT.js"></script>
-    <script src="IodineGBA/core/graphics/BG2FrameBuffer.js"></script>
-    <script src="IodineGBA/core/graphics/BGMatrix.js"></script>
-    <script src="IodineGBA/core/graphics/AffineBG.js"></script>
-    <script src="IodineGBA/core/graphics/ColorEffects.js"></script>
-    <script src="IodineGBA/core/graphics/Mosaic.js"></script>
-    <script src="IodineGBA/core/graphics/OBJ.js"></script>
-    <script src="IodineGBA/core/graphics/OBJWindow.js"></script>
-    <script src="IodineGBA/core/graphics/Window.js"></script>
-    <script src="IodineGBA/core/graphics/Compositor.js"></script>
-
-    <!-- User glue scripts -->
     <script src="user_scripts/IodineGBAROMLoadGlueCode.js"></script>
     <script src="user_scripts/IodineGBAJoyPadGlueCode.js"></script>
-    <script src="user_scripts/IodineGBAGraphicsGlueCode.js"></script>
-    <script src="user_scripts/IodineGBAAudioGlueCode.js"></script>
-    <script src="user_scripts/IodineGBACoreGlueCode.js"></script>
 </head>
 <body>
     <canvas id="emulator_target" width="240" height="160"></canvas>
     <script src="main.js"></script>
 </body>
 </html>
-
